@@ -11,6 +11,7 @@ data PathSection = Section Direction Length deriving Show
 type Position = Int
 type X = Position
 type Y = Position
+type Point = (Position, Position)
 type HasWireHere = Bool
 type Path = Map.Map (Position, Position) HasWireHere
 
@@ -55,14 +56,49 @@ makePath pathSections =
             List.foldl' addSectionToPath (WithXY Map.empty 0 0) pathSections;
     } in path
 
-findIntersections :: Path -> Path -> [(Position, Position)]
+findIntersections :: Path -> Path -> [Point]
 findIntersections p p1 = Map.keys $ Map.intersection p p1
 
-getNearestPointToCentralPort :: [(Position, Position)] -> (Position, Position)
+getNearestPointToCentralPort :: [Point] -> Point
 getNearestPointToCentralPort = head . List.sortOn (\(x, y) -> abs x + abs y)
 
-getDistance :: (Position, Position) -> Int
+type Distance = Int
+
+getDistance :: (Position, Position) -> Distance
 getDistance (x, y) = abs x + abs y
+
+
+type PathDistance = Map.Map (Position, Position) Distance
+
+data PathDistanceWithXYAndIntersections = DistanceWithXYAndIntersections PathDistance X Y [Point] deriving Show
+
+
+arePairsEqual :: Point -> Point -> Bool
+arePairsEqual (x, y) (x1, y1) = x == x1 && y == y1
+
+addSectionToPathDistance :: PathDistanceWithXYAndIntersections -> PathSection -> PathDistanceWithXYAndIntersections
+addSectionToPathDistance pathDistanceWithXYAndIntersections (Section _ 0) = pathDistanceWithXYAndIntersections
+addSectionToPathDistance pathDistanceWithXYAndIntersections@(DistanceWithXYAndIntersections _ _ _ []) _ =
+    pathDistanceWithXYAndIntersections
+addSectionToPathDistance (DistanceWithXYAndIntersections pathDistance x y pointsToReach) (Section direction length) =
+    let {
+        (nX, nY) = nextXYInDirection x y direction;
+        nextPathDistance =
+            List.foldl' (\ pathDistance' point -> Map.insertWith (+) point 1 pathDistance') pathDistance pointsToReach;
+        nextPointsToReach = filter (not . arePairsEqual (nX, nY)) pointsToReach;
+    } in addSectionToPathDistance (DistanceWithXYAndIntersections nextPathDistance nX nY nextPointsToReach) (Section direction (length - 1))
+
+getPathDistanceToPoints :: [Point] -> [PathSection] -> PathDistance
+getPathDistanceToPoints intersections pathSections =
+    let {
+        --initialPathDistance = List.foldl' (\ pathDistance point -> Map.insert point 0 pathDistance) Map.empty points;
+        initialDistanceWithXY = DistanceWithXYAndIntersections Map.empty 0 0 intersections;
+        (DistanceWithXYAndIntersections pathDistance _ _ _) =
+            List.foldl' addSectionToPathDistance initialDistanceWithXY pathSections;
+    } in pathDistance
+
+getShortestPathDistance :: PathDistance -> Distance
+getShortestPathDistance = snd . head . List.sortOn snd . Map.toList
 
 interactWith :: (String -> String) -> FilePath -> FilePath -> IO ()
 interactWith f inputFile outputFile = do
@@ -82,7 +118,11 @@ main = mainWith solvePuzzle
                 pathSections = parseInput input;
                 --firstPuzzlePart = show pathSections;
                 [p, p1] = map makePath pathSections;
-                firstPuzzlePart = show . getDistance . getNearestPointToCentralPort $ findIntersections p p1;
-                --secondPuzzlePart = show .  $ ;
-            } in "First part solution is: " ++ firstPuzzlePart
-                -- ++ "\n" ++ "Second part solution is: " ++ secondPuzzlePart
+                intersections = findIntersections p p1;
+                firstPuzzlePart = show . getDistance $ getNearestPointToCentralPort intersections;
+                --secondPuzzlePart = show $ map (List.sortOn snd . Map.toList . getPathDistanceToPoints intersections) pathSections;
+                secondPuzzlePart = show . sum $
+                    map (getShortestPathDistance . getPathDistanceToPoints intersections) pathSections;
+            } in --"First part solution is: " ++ firstPuzzlePart
+                 -- ++ "\n" ++ "Second part solution is: " ++ secondPuzzlePart
+                 "Second part solution is: " ++ secondPuzzlePart
