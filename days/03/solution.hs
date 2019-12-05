@@ -2,7 +2,6 @@ import Prelude hiding (Left, Right, length)
 import System.Environment (getArgs)
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
---import Data.Maybe (isNothing)
 
 data Direction = Up | Right | Down | Left deriving Show
 type Length = Int
@@ -91,7 +90,6 @@ addSectionToPathDistance (DistanceWithXYAndIntersections pathDistance x y points
 getPathDistanceToPoints :: [Point] -> [PathSection] -> PathDistance
 getPathDistanceToPoints intersections pathSections =
     let {
-        --initialPathDistance = List.foldl' (\ pathDistance point -> Map.insert point 0 pathDistance) Map.empty points;
         initialDistanceWithXY = DistanceWithXYAndIntersections Map.empty 0 0 intersections;
         (DistanceWithXYAndIntersections pathDistance _ _ _) =
             List.foldl' addSectionToPathDistance initialDistanceWithXY pathSections;
@@ -120,9 +118,9 @@ main = mainWith solvePuzzle
                 [p, p1] = map makePath pathSections;
                 intersections = findIntersections p p1;
                 firstPuzzlePart = show . getDistance $ getNearestPointToCentralPort intersections;
-                --secondPuzzlePart = show $ map (List.sortOn snd . Map.toList . getPathDistanceToPoints intersections) pathSections;
-                secondPuzzlePart = show . sum $
-                    map (getShortestPathDistance . getPathDistanceToPoints intersections) pathSections;
-            } in --"First part solution is: " ++ firstPuzzlePart
-                 -- ++ "\n" ++ "Second part solution is: " ++ secondPuzzlePart
-                 "Second part solution is: " ++ secondPuzzlePart
+                secondPuzzlePart = show .
+                    getShortestPathDistance .
+                    foldl1 (Map.intersectionWith (+)) $
+                    map (getPathDistanceToPoints intersections) pathSections;
+            } in "First part solution is: " ++ firstPuzzlePart
+                  ++ "\n" ++ "Second part solution is: " ++ secondPuzzlePart
