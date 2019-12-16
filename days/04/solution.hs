@@ -46,16 +46,27 @@ minMaxNumbersDigits' (firstRangeStartDigit:rsd) (firstRangeEndDigit:red) (MinMax
         lastUpperRangeEndVariantDigit = last maxNumberDigits;
         lowerBound = max lastLowerRangeStartVariantDigit firstRangeStartDigit;
         upperBound = max lastUpperRangeEndVariantDigit firstRangeEndDigit;
+        minHasSameAdjacentDigitsPair' =
+            if minHasSameAdjacentDigitsPair
+            then True
+            else lastLowerRangeStartVariantDigit == lowerBound;
+        maxHasSameAdjacentDigitsPair' =
+            if maxHasSameAdjacentDigitsPair
+            then True
+            else lastUpperRangeEndVariantDigit == upperBound;
         digitsListEnd = null rsd;
         newMinNumberDigits =
-            if digitsListEnd && not minHasSameAdjacentDigitsPair
+            if digitsListEnd && not minHasSameAdjacentDigitsPair'
+            -- suit only for 6 digits ranges
             then (take 4 minNumberDigits) ++ [lowerBound, lowerBound]
             else minNumberDigits ++ [lowerBound];
         newMaxNumberDigits =
-            if digitsListEnd && not maxHasSameAdjacentDigitsPair
-            then (take 4 maxNumberDigits) ++ [upperBound, upperBound]
+            if digitsListEnd && not maxHasSameAdjacentDigitsPair'
+            then let {
+                compensatedUBound = upperBound - 1;
+            } in (take 4 maxNumberDigits) ++ [compensatedUBound, compensatedUBound]
             else maxNumberDigits ++ [upperBound];
-        newMinMax = MinMax (DigitsAndShit newMinNumberDigits True) (DigitsAndShit newMaxNumberDigits True);
+        newMinMax = MinMax (DigitsAndShit newMinNumberDigits minHasSameAdjacentDigitsPair') (DigitsAndShit newMaxNumberDigits maxHasSameAdjacentDigitsPair');
     } in minMaxNumbersDigits' rsd red newMinMax
 
 minMaxNumbersDigits' _ _ minMax = minMax
