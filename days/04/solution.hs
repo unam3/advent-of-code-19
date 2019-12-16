@@ -4,7 +4,9 @@ import System.Environment (getArgs)
 import qualified Data.List as List
 
 type NumberDigits = [Int]
-data MinMaxPasswords = MinMax NumberDigits NumberDigits deriving Show
+type HasSameAdjacentDigitsPair = Bool
+data NumberDigitsAndShit = DigitsAndShit NumberDigits HasSameAdjacentDigitsPair deriving Show
+data MinMaxPasswords = MinMax NumberDigitsAndShit NumberDigitsAndShit deriving Show
 
 -- https://stackoverflow.com/a/6308107/3484083
 -- returns empty list if pass zero
@@ -24,26 +26,36 @@ processInput str =
 
 minMaxNumbersDigits :: [NumberDigits] -> MinMaxPasswords
 minMaxNumbersDigits [rangeStartDigits, rangeEndDigits] =
-    minMaxNumbersDigits' rangeStartDigits rangeEndDigits (MinMax [] [])
+    minMaxNumbersDigits' rangeStartDigits rangeEndDigits (MinMax (DigitsAndShit [] False) (DigitsAndShit [] False))
 
---Going from left to right, the digits never decrease; they only ever increase or stay the same (like 111123 or 135679).
 minMaxNumbersDigits' :: NumberDigits -> NumberDigits -> MinMaxPasswords -> MinMaxPasswords
-minMaxNumbersDigits' (firstRangeStartDigit:secondRangeStartDigit:sn) (firstRangeEndDigit:secondRangeEndDigit:en) (MinMax [] []) =
+minMaxNumbersDigits' (firstRangeStartDigit:secondRangeStartDigit:sn) (firstRangeEndDigit:secondRangeEndDigit:en) (MinMax (DigitsAndShit [] False) (DigitsAndShit [] False)) =
     let {
         lowerBound = max firstRangeStartDigit secondRangeStartDigit;
         upperBound = max firstRangeEndDigit secondRangeEndDigit;
-        newVariants = MinMax [firstRangeStartDigit, lowerBound] [firstRangeEndDigit, upperBound];
+        minHasSameAdjacentDigitsPair = firstRangeStartDigit == lowerBound;
+        maxHasSameAdjacentDigitsPair = firstRangeEndDigit == upperBound;
+        minDigitsAndShit = DigitsAndShit [firstRangeStartDigit, lowerBound] minHasSameAdjacentDigitsPair;
+        maxDigitsAndShit = DigitsAndShit [firstRangeEndDigit, upperBound] maxHasSameAdjacentDigitsPair;
+        newVariants = MinMax minDigitsAndShit maxDigitsAndShit;
     } in minMaxNumbersDigits' sn en newVariants
 
-minMaxNumbersDigits' (firstRangeStartDigit:rsd) (firstRangeEndDigit:red) (MinMax minNumberDigits maxNumberDigits) =
+minMaxNumbersDigits' (firstRangeStartDigit:rsd) (firstRangeEndDigit:red) (MinMax (DigitsAndShit minNumberDigits minHasSameAdjacentDigitsPair) (DigitsAndShit maxNumberDigits maxHasSameAdjacentDigitsPair)) =
     let {
         lastLowerRangeStartVariantDigit = last minNumberDigits;
         lastUpperRangeEndVariantDigit = last maxNumberDigits;
         lowerBound = max lastLowerRangeStartVariantDigit firstRangeStartDigit;
         upperBound = max lastUpperRangeEndVariantDigit firstRangeEndDigit;
-        newMinNumberDigits = minNumberDigits ++ [lowerBound];
-        newMaxNumberDigits = maxNumberDigits ++ [upperBound];
-        newMinMax = MinMax newMinNumberDigits newMaxNumberDigits;
+        digitsListEnd = null rsd;
+        newMinNumberDigits =
+            if digitsListEnd && not minHasSameAdjacentDigitsPair
+            then (take 4 minNumberDigits) ++ [lowerBound, lowerBound]
+            else minNumberDigits ++ [lowerBound];
+        newMaxNumberDigits =
+            if digitsListEnd && not maxHasSameAdjacentDigitsPair
+            then (take 4 maxNumberDigits) ++ [upperBound, upperBound]
+            else maxNumberDigits ++ [upperBound];
+        newMinMax = MinMax (DigitsAndShit newMinNumberDigits True) (DigitsAndShit newMaxNumberDigits True);
     } in minMaxNumbersDigits' rsd red newMinMax
 
 minMaxNumbersDigits' _ _ minMax = minMax
