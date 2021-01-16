@@ -12,9 +12,6 @@ mapDashToWhitespace char = char
 parseInput :: String -> [String]
 parseInput = words . map mapDashToWhitespace
 
-hasSameAdjacentDigits :: String -> Bool
-hasSameAdjacentDigits = (< 6) . length . group
-
 getMinValidPassword :: String -> [Int]
 getMinValidPassword = reverse . foldl
     (\ acc char -> let {
@@ -28,11 +25,11 @@ getMinValidPassword = reverse . foldl
         )
     []
 
-generatePasswords :: [String] -> [String]
+generatePasswords :: [String] -> [[Int]]
 generatePasswords [rangeStart, rangeEnd] = let {
     rangeStartDigits = getMinValidPassword rangeStart;
     rangeEndDigits = map digitToInt rangeEnd :: [Int];
-} in map show [
+} in [
     [i, j, k, l, m, n] |
         i <- [0..9],
         j <- [0..9],
@@ -68,6 +65,19 @@ solve :: IO ()
 solve = readFile "input"
     >>= print
         . length
+        . generatePasswords
+        . parseInput
+        . init
+
+
+hasOnlyOnePairAdjacentDigits :: [Int] -> Bool
+hasOnlyOnePairAdjacentDigits = any ((== 2) . length) . group
+
+solveP2 :: IO ()
+solveP2 = readFile "input"
+    >>= print
+        . length
+        . filter hasOnlyOnePairAdjacentDigits
         . generatePasswords
         . parseInput
         . init
