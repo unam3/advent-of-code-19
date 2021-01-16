@@ -30,16 +30,16 @@ getMinValidPassword = reverse . foldl
 
 generatePasswords :: [String] -> [String]
 generatePasswords [rangeStart, rangeEnd] = let {
-    [rs1, rs2, rs3, rs4, rs5, rs6] = getMinValidPassword rangeStart;
-    [re1, re2, re3, re4, re5, re6] = map digitToInt rangeEnd :: [Int];
-} in map show $ [
+    rangeStartDigits = getMinValidPassword rangeStart;
+    rangeEndDigits = map digitToInt rangeEnd :: [Int];
+} in map show [
     [i, j, k, l, m, n] |
-        i <- [rs1..9],
-        j <- [rs2..9],
-        k <- [rs3..9],
-        l <- [rs4..9],
-        m <- [rs5..9],
-        n <- [rs6..9],
+        i <- [0..9],
+        j <- [0..9],
+        k <- [0..9],
+        l <- [0..9],
+        m <- [0..9],
+        n <- [0..9],
         -- next digit same or bigger
         j >= i,
         k >= j,
@@ -52,14 +52,14 @@ generatePasswords [rangeStart, rangeEnd] = let {
         l == k ||
         m == l ||
         n == m,
-        [i, j, k, l, m, n] < [re1, re2, re3, re4, re5, re6]
+        [i, j, k, l, m, n] >= rangeStartDigits,
+        [i, j, k, l, m, n] < rangeEndDigits
     ]
 generatePasswords _ = []
 
 solveTest :: IO ()
-solveTest = readFile "textInput"
+solveTest = readFile "testInput"
     >>= print
-        . length
         . generatePasswords
         . parseInput
         . init
